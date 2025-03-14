@@ -4,7 +4,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 
 const errorController = require('./controllers/error');
-const mongoConnect = require('./util/database');
+const mongoConnect = require('./util/database').mongoConnect;
+
+const users = require('./models/user');
 
 const app = express();
 
@@ -13,16 +15,27 @@ app.set('views', 'views');
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
+const User = require('./models/user');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use((req, res, next) => {
+	users.findUserById('67cc86cb58e53f12140b96b6')
+	.then(user => {
+		// req.user = user;
+		req.user = new User(user.name, user.email, user.cart, user._id);
+		next();
+	})
+	.catch(err => console.log(err));
+});
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 
 app.use(errorController.get404);
 
-mongoConnect((mongoClient) => {
-	app.listen(3000);
-	console.log(mongoClient);
-})
+mongoConnect();
+
+app.listen(3000);
+console.log('Server started');

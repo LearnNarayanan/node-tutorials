@@ -30,7 +30,6 @@ module.exports = class Cart {
 		cart.products = [...cart.products, updatedProduct];
 	}
 	cart.totalPrice = parseFloat(cart.totalPrice) + parseFloat(productPrice);
-	console.log(cart);
 	fs.writeFile(p, JSON.stringify(cart), err => {
 		console.log(err);
 	});
