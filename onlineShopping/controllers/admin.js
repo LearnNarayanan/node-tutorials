@@ -13,11 +13,17 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(title, imageUrl, description, price, null, req.user._id);
-  product.save(()=> {
-    res.redirect('/');
+  // Here mongoose can also accept userId field as req.user alone, and not req.user._id, as it will automatically extract the id from the user object.
+  const product = new Product({title: title, price: price, description: description, imageUrl: imageUrl, userId: req.user});
+  // This save method call is from mongoose and not the save() method exposed in product model class, which was there earlier.
+  product.save()
+  .then(result => {
+    console.log('Product Created');
+      res.redirect('/');
+  })
+  .catch(err => {
+      console.log(err);
   });
-  
 };
 
 exports.getEditProduct = (req, res, next) => {
@@ -25,8 +31,8 @@ exports.getEditProduct = (req, res, next) => {
   if (!editMode) {
     return res.redirect('/');
   }
-  const prodId = req.params.productId;
-  Product.fetchProductById(prodId, product => {
+  Product.findById(req.params.productId)
+  .then(product => {
     if (!product) {
       return res.redirect('/');
     }
@@ -36,13 +42,14 @@ exports.getEditProduct = (req, res, next) => {
       editing: editMode,
       product: product
     });
-  });
+  })
 };
 
 exports.postDeleteProduct = (req, res, next) => {
  const prodId = req.body.productId;
- Product.delete(prodId, () => {
- 	res.redirect('/admin/products');
+ Product.findByIdAndDelete(prodId)
+ .then(()=> {
+  res.redirect('/admin/products');
  });
 };
 
@@ -52,19 +59,23 @@ exports.postEditProduct = (req, res, next) => {
   const updatedPrice = req.body.price;
   const updatedImageUrl = req.body.imageUrl;
   const updatedDesc = req.body.description;
-  const updatedProduct = new Product(
-    updatedTitle,
-    updatedImageUrl,
-    updatedDesc,
-    updatedPrice,
-    prodId
-  );
-  updatedProduct.save();
-  res.redirect('/admin/products');
+  Product.findById(prodId)
+  .then(product => {
+    product.title = updatedTitle;
+    product.description = updatedDesc;
+    product.imageUrl = updatedImageUrl;
+    product.price = updatedPrice;
+
+    product.save()
+    .then(()=> {
+      res.redirect('/admin/products');
+    })
+  });
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll(products => {
+  Product.find()
+  .then(products => {
     res.render('admin/products', {
       prods: products,
       pageTitle: 'Admin Products',
